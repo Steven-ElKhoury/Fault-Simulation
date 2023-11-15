@@ -1,6 +1,6 @@
 import java.util.ArrayList;
 
-public class Gate {
+public abstract class Gate {
 
     public ArrayList<Line> inputs = new ArrayList<>();
     public Line output;
@@ -12,6 +12,9 @@ public class Gate {
         Id++;
         gateId = Id;
     }
+
+
+    public abstract void compute();
 
     public void addInput(Line input) {
         inputs.add(input);

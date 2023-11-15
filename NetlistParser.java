@@ -108,21 +108,56 @@ public class NetlistParser {
         //circuit.compute();
         //circuit.printOutput();
 
-        System.out.println("Primary inputs:");
+        // System.out.println("Primary inputs:");
 
-        primaryInputs.forEach((k, v) -> System.out.println("Key: " + k + " Value: " + v.getLineValue()));
+        // primaryInputs.forEach((k, v) -> System.out.println("Key: " + k + " Value: " + v.getLineValue()));
         
-        System.out.println("Primary outputs:");
+        // System.out.println("Primary outputs:");
 
-        primaryOutputs.forEach((k, v) -> System.out.println("Key: " + k + " Value: " + v.getLineValue()));
+        // primaryOutputs.forEach((k, v) -> System.out.println("Key: " + k + " Value: " + v.getLineValue()));
 
-        System.out.println("Lines:");
+        // System.out.println("Lines:");
 
-        lines.forEach((k, v) -> System.out.println("Key: " + k + " Value: " + v.getLineValue()));
+        // lines.forEach((k, v) -> System.out.println("Key: " + k + " Value: " + v.getLineValue()));
 
-        System.out.println("Gates:");
+        // System.out.println("Gates:");
 
-        gates.forEach((gate) -> System.out.println("Gate: " + gate.getClass().getName() + " Value: " + gate.getOutput().getLineValue()));
+        // gates.forEach((gate) -> System.out.println("Gate: " + gate.getClass().getName() + " Value: " + gate.getOutput().getLineValue()));
+
+
+        primaryInputs.get("1").setLineValue(1);
+        primaryInputs.get("2").setLineValue(0);
+        primaryInputs.get("3").setLineValue(1);
+        primaryInputs.get("6").setLineValue(0);
+        primaryInputs.get("7").setLineValue(0);
+
+        for(String s : primaryInputs.keySet()){
+          
+            if(primaryInputs.get(s).getConnectedLines().size()!=0){
+                for(Line l : primaryInputs.get(s).getConnectedLines()){
+                    System.out.println("fanout");
+                    l.setLineValue(primaryInputs.get(s).getLineValue());
+                }
+            }
+        }
+
+        for(Gate g : gates){
+            g.compute();
+            Line out = g.getOutput();
+            
+            if(out.getConnectedLines().size()!= 0){
+                for(Line l : out.getConnectedLines()){
+                    System.out.println("fanout");               
+                    l.setLineValue(out.getLineValue());
+                }
+            }
+        }
+
+        for(String s : primaryOutputs.keySet()){
+            System.out.println(lines.get(s).getLineValue());
+        }
+
+        // System.out.println(lines.get("22").getLineValue());
 
 
     }
