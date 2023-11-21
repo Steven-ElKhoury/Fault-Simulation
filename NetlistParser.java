@@ -1,5 +1,4 @@
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -7,34 +6,46 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.net.URL;
-import java.util.HashSet;
+import java.util.Scanner;
 
 public class NetlistParser {
 
     public static void main(String[] args) {
-        HashMap<String, Line> primaryInputs = new HashMap<>();
-        HashMap<String, Line> primaryOutputs = new HashMap<>();
+        List<String> primaryInputs = new ArrayList<>();
+        List<String> primaryOutputs = new ArrayList<>();
         Map<String, Line> lines = new HashMap<>();
         List<Gate> gates = new ArrayList<>();
         Map<String, Integer> inputCounts = new HashMap<>(); // Keep track of how many times each line is used as an input
         
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(new URL("https://www.pld.ttu.ee/~maksim/benchmarks/iscas85/bench/c17.bench").openStream()))) {
+        long startTime = System.currentTimeMillis();
+
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new URL("https://www.pld.ttu.ee/~maksim/benchmarks/iscas85/bench/c7552.bench").openStream()))) {
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.startsWith("INPUT")) {
                     String lineId = line.substring(line.indexOf("(") + 1, line.indexOf(")"));
                     lines.put(lineId, new Line( 0, "input"));
-                    primaryInputs.put(lineId,lines.get(lineId));
+                    primaryInputs.add(lineId);
                 } else if (line.startsWith("OUTPUT")) {
                     String lineId = line.substring(line.indexOf("(") + 1, line.indexOf(")"));
                     lines.put(lineId, new Line(0, "output"));
-                    primaryOutputs.put(lineId,lines.get(lineId));
+                    primaryOutputs.add(lineId);
                 } else if (line.contains("=")) { 
                     String[] parts = line.split(" = ");
                     String outputId = parts[0];
                     String gateType = parts[1].substring(0, parts[1].indexOf("("));
-                    String[] inputIds = parts[1].substring(parts[1].indexOf("(") + 1, parts[1].indexOf(")")).split(", ");
-                    
+
+                    String inputIds[] = new String[2];
+
+                    if(gateType != "BUFF" && gateType != "NOT"){
+                        inputIds = parts[1].substring(parts[1].indexOf("(") + 1, parts[1].indexOf(")")).split(", ");
+                    }
+                    else{
+                        inputIds[0] = parts[1].substring(parts[1].indexOf("(") + 1, parts[1].indexOf(")"));
+                        inputIds[1] = null;
+                    }       
+
+                    System.out.println(outputId + " " + gateType + " ");
 
                     Gate gate;
                     switch (gateType) {
@@ -59,15 +70,21 @@ public class NetlistParser {
                         case "XNOR":
                             gate = new XNOR();
                             break;
+                        case "BUFF":
+                            gate = new BUFF();
+                            break;
                         default:
                             throw new IllegalArgumentException("Unknown gate type: " + gateType);
                     }
-
                     for (String inputId : inputIds) {
-                        inputCounts.put(inputId, inputCounts.getOrDefault(inputId, 0) + 1); // Increment the count for this input line
+                        if(inputId != null){
+                           inputCounts.put(inputId, inputCounts.getOrDefault(inputId, 0) + 1);
+                        }
+                         // Increment the count for this input line
                         if(inputCounts.get(inputId) > 1) {
                             char append = 'a';
                             // This line is used as an input for more than one gate, so we need to create a new line for it
+                           
                             if(inputCounts.get(inputId) > 2) {
                                 Line newLine = new Line(0, "");
                                 append += inputCounts.get(inputId) - 2;
@@ -75,6 +92,7 @@ public class NetlistParser {
                                 gate.addInput(lines.get(inputId+append));
                                 lines.get(inputId).addConnectedLine(lines.get(inputId+append));
                             }
+                           
                             Line newLine = new Line(0, "");
                             append += inputCounts.get(inputId) - 2;
                             lines.put(inputId+append, newLine);
@@ -89,13 +107,18 @@ public class NetlistParser {
                             gate.addInput(lines.get(inputId));
                         }
                     }
-                    lines.get(inputIds[0]).addConnectedGate(gate);
-                    lines.get(inputIds[1]).addConnectedGate(gate);
 
+                    for(int i=0; i< inputIds.length; i++){
+                        if(inputIds[i] != null){
+                            lines.get(inputIds[i]).addConnectedGate(gate);
+                        }
+                    }
+                   
                     Line outputLine = new Line(0, "");
                     lines.put(outputId, outputLine);
                     gate.setOutput(outputLine);
                     gates.add(gate);
+                
                 }
             }           
 
@@ -124,19 +147,20 @@ public class NetlistParser {
 
         // gates.forEach((gate) -> System.out.println("Gate: " + gate.getClass().getName() + " Value: " + gate.getOutput().getLineValue()));
 
+        Scanner scan = new Scanner(System.in);
 
-        primaryInputs.get("1").setLineValue(1);
-        primaryInputs.get("2").setLineValue(0);
-        primaryInputs.get("3").setLineValue(1);
-        primaryInputs.get("6").setLineValue(0);
-        primaryInputs.get("7").setLineValue(0);
+        for(String s: primaryInputs){
+            System.out.println("Primary input " + s);
+            int value = scan.nextInt();
+            lines.get(s).setLineValue(value);
+        }
 
-        for(String s : primaryInputs.keySet()){
-          
-            if(primaryInputs.get(s).getConnectedLines().size()!=0){
-                for(Line l : primaryInputs.get(s).getConnectedLines()){
-                    System.out.println("fanout");
-                    l.setLineValue(primaryInputs.get(s).getLineValue());
+        scan.close();
+
+        for(String s : primaryInputs){   
+            if(lines.get(s).getConnectedLines().size()!=0){
+                for(Line l : lines.get(s).getConnectedLines()){
+                    l.setLineValue(lines.get(s).getLineValue());
                 }
             }
         }
@@ -147,18 +171,20 @@ public class NetlistParser {
             
             if(out.getConnectedLines().size()!= 0){
                 for(Line l : out.getConnectedLines()){
-                    System.out.println("fanout");               
+                                
                     l.setLineValue(out.getLineValue());
                 }
             }
         }
 
-        for(String s : primaryOutputs.keySet()){
+        for(String s : primaryOutputs){
             System.out.println(lines.get(s).getLineValue());
         }
 
+        long endTime = System.currentTimeMillis();
+
+        System.out.println("Total execution time: " + (endTime - startTime) + "ms");
+
         // System.out.println(lines.get("22").getLineValue());
-
-
     }
 }
