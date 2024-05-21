@@ -19,7 +19,7 @@ public class NetlistParser {
         
         long startTime = System.currentTimeMillis();
 
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(new URL("https://www.pld.ttu.ee/~maksim/benchmarks/iscas85/bench/c7552.bench").openStream()))) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new URL("https://www.pld.ttu.ee/~maksim/benchmarks/iscas85/bench/c17.bench").openStream()))) {
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.startsWith("INPUT")) {
@@ -45,7 +45,7 @@ public class NetlistParser {
                         inputIds[1] = null;
                     }       
 
-                    System.out.println(outputId + " " + gateType + " ");
+                    //System.out.println(outputId + " " + gateType + " ");
 
                     Gate gate;
                     switch (gateType) {
@@ -150,7 +150,7 @@ public class NetlistParser {
         Scanner scan = new Scanner(System.in);
 
         for(String s: primaryInputs){
-            System.out.println("Primary input " + s);
+            System.out.print("Enter primary input " + s + ": ");
             int value = scan.nextInt();
             lines.get(s).setLineValue(value);
         }
@@ -178,7 +178,7 @@ public class NetlistParser {
         }
 
         for(String s : primaryOutputs){
-            System.out.println(lines.get(s).getLineValue());
+            System.out.println("Primary output " + s +": " + lines.get(s).getLineValue());
         }
 
         long endTime = System.currentTimeMillis();
